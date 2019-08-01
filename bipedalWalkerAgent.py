@@ -80,7 +80,9 @@ class Agent:
     # plays an episode of a game
     def play(self, deltas=None, render=False):
         total_reward = 0
-        observation = self.env.reset()
+        self.env.reset()
+        observation = self.env.seed(3)
+
         n = 0
         while n < 2000:
             if render:
@@ -98,7 +100,6 @@ class Agent:
 
     def save(self):
         np.save('./bipedalhardcore.npy', self.model.get_weights(), allow_pickle=True)
-        print(self.model.get_weights())
         print('progress saved')
 
 
@@ -107,12 +108,7 @@ class Agent:
             deltas = [self.noise_rate * np.random.randn(*self.model.weights.shape) for _ in range(self.population)]
             positive_rewards = [0] * self.population
             negative_rewards = [0] * self.population
-            if self.load:
-                old_weights = np.load('bipedal.npy')
-                print(old_weights)
-                self.load = False
-            else:
-                old_weights = self.model.get_weights()
+            old_weights = self.model.get_weights()
 
             for k, d in enumerate(deltas):
                 self.model.set_weights(old_weights + d)
@@ -124,25 +120,26 @@ class Agent:
             order = sorted(scores.keys(), key=lambda x: scores[x], reverse=True)[:self.population]
             rollouts = [(positive_rewards[k], negative_rewards[k], deltas[k]) for k in order]
 
+            if self.load:
+                x =
             update = np.zeros(self.model.weights.shape)
             for r_p, r_n, delta in rollouts:
                 update += (r_p - r_n) * delta
             new_weights = old_weights + self.alpha * update / (self.population)
-            self.model.set_weights(new_weights)
+            x = new_weights
+            if self.load:
+                x = np.load('./bipedalhardcore.npy')
+            self.model.set_weights(x)
 
-            re = True
+            re = False
             if step % 20 == 0:
                 re = True
             reward = self.play(render=re)
             print('Step: ', step, 'Reward: ', reward)
-            if step %(n_steps -1) == 0 and step != 0:
+            if step % 5 == 0 and step != 0:
                 if self.save:
                     self.save()
 
-
-
-
-
 if __name__ == '__main__':
     agent = Agent()
-    agent.train(1001)
+    agent.train(10001)
