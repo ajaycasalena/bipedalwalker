@@ -5,10 +5,6 @@ from gym.utils import seeding
 
 
 class Model:
-    """
-    Class representing the policy
-    """
-
     def __init__(self, input_size, output_size):
         self.weights = np.zeros((input_size, output_size))
 
@@ -19,7 +15,6 @@ class Model:
         output = np.dot(inp, w)
         return output
 
-    # returns model weights
     def get_weights(self):
         return self.weights
 
@@ -29,17 +24,12 @@ class Model:
 
 
 class Normalizer:
-    """
-    Normalzies the input to be between 0 and 1
-    """
-
     def __init__(self, input_size):
         self.n = np.zeros(input_size)
         self.mean = np.zeros(input_size)
         self.mean_diff = np.zeros(input_size)
         self.std = np.zeros(input_size)
 
-    # given new data it updates parametest of normalizer
     def observe(self, x):
         self.n += 1.0
         last_mean = self.mean.copy()
@@ -47,7 +37,6 @@ class Normalizer:
         self.mean_diff += (x - last_mean) * (x - self.mean)
         self.var = (self.mean_diff / self.n).clip(min=1e-2)
 
-    # normalizes the input
     def normalize(self, inputs):
         obs_mean = self.mean
         obs_std = np.sqrt(self.var)
@@ -55,14 +44,10 @@ class Normalizer:
 
 
 class Agent:
-    """
-    Class used to train model with ARS
-    """
-
     save = True
-    load = False
+    load = True
 
-    GAME = 'BipedalWalkerHardcore-v2'
+    GAME = 'BipedalWalker-v2'
 
     def __init__(self):
         self.env = gym.make(self.GAME)
@@ -75,9 +60,8 @@ class Agent:
         self.alpha = 0.09
         self.population = 16
         np.random.seed(1)
+        self.path = 'bipedal.npy'
 
-
-    # plays an episode of a game
     def play(self, deltas=None, render=False):
         total_reward = 0
         self.env.reset()
@@ -99,9 +83,8 @@ class Agent:
         return total_reward
 
     def save(self):
-        np.save('./bipedalhardcore.npy', self.model.get_weights(), allow_pickle=True)
+        np.save(self.path, self.model.get_weights(), allow_pickle=True)
         print('progress saved')
-
 
     def train(self, n_steps):
         for step in range(n_steps):
@@ -120,15 +103,14 @@ class Agent:
             order = sorted(scores.keys(), key=lambda x: scores[x], reverse=True)[:self.population]
             rollouts = [(positive_rewards[k], negative_rewards[k], deltas[k]) for k in order]
 
-            if self.load:
-                x =
             update = np.zeros(self.model.weights.shape)
             for r_p, r_n, delta in rollouts:
                 update += (r_p - r_n) * delta
             new_weights = old_weights + self.alpha * update / (self.population)
             x = new_weights
             if self.load:
-                x = np.load('./bipedalhardcore.npy')
+                x = np.load(self.path)
+                self.load = False
             self.model.set_weights(x)
 
             re = False
