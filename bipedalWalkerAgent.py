@@ -1,6 +1,7 @@
 import gym
 import numpy as np
 from gym.utils import seeding
+import matplotlib.pyplot as plt
 
 
 
@@ -15,6 +16,7 @@ class Model:
         output = np.dot(inp, w)
         return output
 
+    # returns model weights
     def get_weights(self):
         return self.weights
 
@@ -30,6 +32,7 @@ class Normalizer:
         self.mean_diff = np.zeros(input_size)
         self.std = np.zeros(input_size)
 
+    # given new data it updates parametest of normalizer
     def observe(self, x):
         self.n += 1.0
         last_mean = self.mean.copy()
@@ -37,6 +40,7 @@ class Normalizer:
         self.mean_diff += (x - last_mean) * (x - self.mean)
         self.var = (self.mean_diff / self.n).clip(min=1e-2)
 
+    # normalizes the input
     def normalize(self, inputs):
         obs_mean = self.mean
         obs_std = np.sqrt(self.var)
@@ -45,7 +49,7 @@ class Normalizer:
 
 class Agent:
     save = True
-    load = True
+    load = False
 
     GAME = 'BipedalWalker-v2'
 
@@ -61,7 +65,10 @@ class Agent:
         self.population = 16
         np.random.seed(1)
         self.path = 'bipedal.npy'
+        self.list = []
 
+
+    # plays an episode of a game
     def play(self, deltas=None, render=False):
         total_reward = 0
         self.env.reset()
@@ -85,6 +92,7 @@ class Agent:
     def save(self):
         np.save(self.path, self.model.get_weights(), allow_pickle=True)
         print('progress saved')
+
 
     def train(self, n_steps):
         for step in range(n_steps):
@@ -114,14 +122,20 @@ class Agent:
             self.model.set_weights(x)
 
             re = False
-            if step % 20 == 0:
+            if step % 5 == 0:
                 re = True
-            reward = self.play(render=re)
-            print('Step: ', step, 'Reward: ', reward)
-            if step % 5 == 0 and step != 0:
                 if self.save:
                     self.save()
+            reward = self.play(render=re)
+            print('Step: ', step, 'Reward: ', reward)
+            y = 0
+            y += reward
+            if step % 5 == 0:
+                self.list.append(y/5)
 
 if __name__ == '__main__':
     agent = Agent()
-    agent.train(10001)
+    agent.train(350)
+    plt.plot(agent.list)
+    plt.show()
+
